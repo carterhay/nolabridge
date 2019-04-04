@@ -26,6 +26,11 @@ class NolaSpider(scrapy.Spider):
         image_links = res.css("img.river-item__thumbnail-image::attr(data-src)").getall()
 
         self.log("Lengths: headlines %d, links %d, summaries %d, authors %d, images %d" % (len(headlines), len(links), len(summaries), len(authors), len(image_links)))
+        lengths = [len(headlines), len(links), len(summaries), len(authors), len(image_links)]
+        for i in lengths:
+            if i != lengths[0]:
+                self.log("Scraping parsing invalid. Irrecoverable error.")
+                return
 
         fg = FeedGenerator()
         fg.id("nola.rss.idlecore.dev")
