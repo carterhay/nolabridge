@@ -1,6 +1,8 @@
 import scrapy
 import json
 from feedgen.feed import FeedGenerator
+import feedparser
+import os
 
 class NolaSpider(scrapy.Spider):
     name = "nola"
@@ -33,14 +35,35 @@ class NolaSpider(scrapy.Spider):
         fg.link(href="nola.rss.idlecore.dev", rel="self")
         fg.language("en")
 
-        for i in [dict(zip(keys, x)) for x in zip(headlines, links, summaries, authors, image_links)]:
-            self.log("Adding: %s" % i["headline"])
-            fe = fg.add_entry()
-            fe.id(i["link"])
-            fe.title(i["headline"])
-            fe.description(i["summary"])
-            fe.link(href=i["link"])
-            fe.enclosure(i["image"], 0, 'image/jpg')
+        covered = set()
+        feed = feedparser.parse("test.xml")
+        entries = feed['entries'][:500]
+        for i in entries[::-1]:
+            if i['id'] not in covered:
+                self.log("Adding: %s" % i['title'])
+                fe = fg.add_entry()
+                fe.id(i['id'])
+                fe.title(i['title'])
+                fe.description(i['description'])
+                fe.link(href=i['link'])
+                fe.enclosure(i.enclosures[0].href, 0, 'image/jpg')
+                covered.add(i['id'])
+            else:
+                self.log("Skipping: %s" % i['title'])
+
+        for i in [dict(zip(keys, x)) for x in zip(headlines, links, summaries, authors, image_links)][::-1]:
+            if i['link'] not in covered:
+                self.log("Adding: %s" % i["headline"])
+                fe = fg.add_entry()
+                fe.id(i["link"])
+                fe.title(i["headline"])
+                fe.description(i["summary"])
+                fe.link(href=i["link"])
+                fe.enclosure(i["image"], 0, 'image/jpg')
+                covered.add(i["link"])
+            else:
+                self.log("Skipping: %s" % i['headline'])
+
 
         fg.atom_str(pretty=True)
         fg.atom_file("test.xml")
